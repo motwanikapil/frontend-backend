@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const User = require("../models/user");
+const bcrypt = require("bcrypt");
 
 exports.user_signup = (req, res, next) => {
   console.log("inside signup");
@@ -44,6 +45,36 @@ exports.user_signup = (req, res, next) => {
     });
 };
 
-exports.user_login = (req, res) => {
-  User.find();
+exports.user_login = (req, res, next) => {
+  console.log("inside login");
+  console.log(req.body);
+
+  User.find({ email: req.body.email })
+    .exec()
+    .then((user) => {
+      console.log("user", user);
+
+      if (user.length < 1) {
+        return res.status(404).json({
+          message: "User not exists",
+        });
+      }
+      bcrypt.compare(req.body.password, user[0].password, (err, result) => {
+        if (!result) {
+          console.log("password not match");
+          console.log(err);
+
+          return res.status(401).json({
+            message: "password not match",
+            err: "Wrong password",
+          });
+        } else {
+          console.log("success");
+          return res.json({
+            message: "SUccessful Login",
+            data: user[0],
+          });
+        }
+      });
+    });
 };

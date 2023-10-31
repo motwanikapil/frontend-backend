@@ -1,21 +1,21 @@
-import React from "react"
-import { Link } from "react-router-dom"
-import * as yup from "yup"
-import { yupResolver } from "@hookform/resolvers/yup"
-import { useForm } from "react-hook-form"
-import { useNavigate } from "react-router-dom"
-import bcrypt from "bcryptjs-react"
-import useToast from "../hooks/useToast"
-import { useAuth } from "../utils/auth"
-import { PWDREGEX } from "../config/regex"
-import { validationMessages } from "../config/validationMessage"
-import { messages } from "../config/messages"
+import React from "react";
+import { Link } from "react-router-dom";
+import * as yup from "yup";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
+import bcrypt from "bcryptjs-react";
+import useToast from "../hooks/useToast";
+import { useAuth } from "../utils/auth";
+import { PWDREGEX } from "../config/regex";
+import { validationMessages } from "../config/validationMessage";
+import { messages } from "../config/messages";
 
 export default function LoginPage() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
-  const auth = useAuth()
-  const { showToast, toastMessage } = useToast()
+  const auth = useAuth();
+  const { showToast, toastMessage } = useToast();
 
   //yup validation
   const schema = yup.object().shape({
@@ -26,42 +26,65 @@ export default function LoginPage() {
       .max(32)
       .min(8)
       .matches(PWDREGEX, validationMessages.pwdIncoorect),
-  })
+  });
 
-  const onSubmit = (submittedData) => {
-    const allUsersData = JSON.parse(localStorage.getItem("users"))
+  const onSubmit = async (submittedData) => {
+    console.log("sfd");
+    const response = await fetch("http://localhost:3000/user/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(submittedData),
+    });
+    console.log("resposnse", response);
+    const result = await response.json();
+    console.log("resposnse", result);
+    console.log("resposnse", result.data);
+    // const allUsersData = JSON.parse(localStorage.getItem("users"));
 
     // finding the current login user
-    const userData = allUsersData?.filter((user) => {
-      return user.email === submittedData.email
-    })
+    // const userData = allUsersData?.filter((user) => {
+    //   return user.email === submittedData.email;
+    // });
 
-    if (userData?.length > 0) {
-      // compare the password is same or not
-      const result = bcrypt.compareSync(
-        submittedData.password,
-        userData[0].password
-      )
+    // if (userData?.length > 0) {
+    //   // compare the password is same or not
+    //   const result = bcrypt.compareSync(
+    //     submittedData.password,
+    //     userData[0].password
+    //   );
 
-      if (result) {
-        // password match
-        auth.login(userData[0])
+    //   if (result) {
+    //     // password match
+    //     auth.login(userData[0]);
 
-        navigate("/products", { replace: true })
-      } else {
-        showToast(messages.pwdNotMatch, "danger")
-      }
+    //     navigate("/products", { replace: true });
+    //   } else {
+    //     showToast(messages.pwdNotMatch, "danger");
+    //   }
+    // } else {
+    //   showToast(messages.userNotExists, "danger");
+    // }
+    // return;
+
+    if (response.status === 404) {
+      showToast(messages.userNotExists, "danger");
+    } else if (response.status === 401) {
+      showToast(messages.pwdNotMatch, "danger");
     } else {
-      showToast(messages.userNotExists, "danger")
+      console.log("response", response);
+      auth.login(result.data);
+      navigate("/products", { replace: true });
     }
-    return
-  }
+    return;
+  };
 
   const {
     handleSubmit,
     register,
     formState: { errors },
-  } = useForm({ resolver: yupResolver(schema) })
+  } = useForm({ resolver: yupResolver(schema) });
 
   return (
     <div className="container h-100">
@@ -73,6 +96,8 @@ export default function LoginPage() {
       <div className="row align-items-center" style={{ height: "100vh" }}>
         <div className="mx-auto col-10 col-md-8 col-lg-6">
           <form
+            action="http://localhost:3000/user/login"
+            method="POST"
             onSubmit={handleSubmit(onSubmit)}
             className="p-4 border rounded bg-white"
           >
@@ -127,5 +152,5 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
